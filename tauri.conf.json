@@ -1,0 +1,16 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Melatonyne",
+  "version": "1.0.0",
+  "identifier": "com.melatonyne.app",
+  "app": {
+    "withGlobalTauri": true,
+    "windows": []
+  },
+  "bundle": {
+    "icon": ["icons/icon.png", "icons/icon.ico"]
+  },
+  "build": {
+    "frontendDist": "dist"
+  }
+}
