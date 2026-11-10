@@ -5,22 +5,22 @@ import path from 'node:path'
 import process from 'node:process'
 
 const root = process.cwd()
-const tag = process.argv[2] || 'v' + JSON.parse(fs.readFileSync(path.join(root, 'tauri.conf.json'), 'utf8')).version
+const conf = JSON.parse(fs.readFileSync(path.join(root, 'tauri.conf.json'), 'utf8'))
+const version = conf.version
+const tag = process.argv[2] || 'v' + version
 const bundleDir = path.join(root, 'target', 'release', 'bundle', 'nsis')
 if (!fs.existsSync(bundleDir)) {
   console.error('no bundle dir:', bundleDir)
   process.exit(1)
 }
 const files = fs.readdirSync(bundleDir)
-const installer = files.find(f => f.endsWith('-setup.exe'))
-const sig = files.find(f => f.endsWith('-setup.exe.sig'))
+const installer = files.find(f => f.endsWith('-setup.exe') && f.includes(version))
+const sig = installer && files.find(f => f === installer + '.sig')
 if (!installer || !sig) {
-  console.error('missing installer or signature in', bundleDir)
+  console.error('missing installer or signature for version', version, 'in', bundleDir)
   process.exit(1)
 }
-const conf = JSON.parse(fs.readFileSync(path.join(root, 'tauri.conf.json'), 'utf8'))
 const repo = 'thevirgindev/melatonyne'
-const version = conf.version
 const latest = {
   version,
   notes: process.argv[3] || 'Melatonyne ' + version,
