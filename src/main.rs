@@ -46,6 +46,19 @@ extern "system" {
     fn DwmSetWindowAttribute(hwnd: isize, attr: u32, value: *const core::ffi::c_void, size: u32) -> i32;
 }
 
+#[link(name = "user32")]
+extern "system" {
+    fn MessageBoxW(hwnd: isize, text: *const u16, caption: *const u16, kind: u32) -> i32;
+}
+
+fn fatal(message: &str) {
+    let text: Vec<u16> = message.encode_utf16().chain(std::iter::once(0)).collect();
+    let caption: Vec<u16> = "Melatonyne".encode_utf16().chain(std::iter::once(0)).collect();
+    unsafe {
+        MessageBoxW(0, text.as_ptr(), caption.as_ptr(), 0x10);
+    }
+}
+
 #[link(name = "shell32")]
 extern "system" {
     fn ShellExecuteW(
@@ -89,6 +102,13 @@ fn set_border_color(window: &WebviewWindow) {
 
 fn spawn_host(key: Option<&str>) -> (Child, String) {
     let root = backend();
+    if !root.join("apps").is_dir() {
+        fatal(&format!(
+            "The Melatonyne backend is missing.\n\nExpected it at:\n{}\n\nPut the harness backend in a 'backend\\dsh' folder next to this app, or set MELATONYNE_BACKEND.",
+            root.display()
+        ));
+        std::process::exit(2);
+    }
     // Prefer the compiled CLI (no tsx transform at boot); fall back to the
     // TypeScript entry for source checkouts.
     let compiled = root.join("apps").join("cli").join("lib").join("bin.js");
@@ -233,6 +253,69 @@ const SHELL_JS: &str = r#"
           });
           return proxy;
         };
+      }
+      if (!window.__melBrand) {
+        window.__melBrand = true;
+        // Melatonyne brand pass: swap the sidebar fish mark for the app
+        // monogram and rewrite product-level copy that still says
+        // "DeepSeek Harness". Provider and model names stay untouched.
+        var MARK_PATH = '<path d="M5.5 18V6l6.5 5.6L18.5 6v12" stroke="rgb(249,250,251)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>';
+        function paintSvg(svg) {
+          if (svg.getAttribute('data-mel') === '1') return;
+          svg.setAttribute('data-mel', '1');
+          svg.setAttribute('viewBox', '0 0 24 24');
+          var w = parseFloat(svg.getAttribute('width')) || 24;
+          svg.setAttribute('width', String(w));
+          svg.setAttribute('height', String(w));
+          svg.innerHTML = MARK_PATH;
+        }
+        function paintMark() {
+          var svgs = document.querySelectorAll('[class*=brandMark] svg');
+          for (var i = 0; i < svgs.length; i++) paintSvg(svgs[i]);
+          // Any remaining fish mark (account menu, empty states) uses the
+          // upstream logo viewBox; swap those too.
+          var fish = document.querySelectorAll('svg[viewBox="0 0 23.16 17.04"]');
+          for (var j = 0; j < fish.length; j++) paintSvg(fish[j]);
+          // Sidebar wordmark: upstream ships the DeepSeek wordmark as an SVG.
+          // Swap it for the Melatonyne wordmark that the welcome bundle ships.
+          var names = document.querySelectorAll('[class*=brandName] svg');
+          for (var k = 0; k < names.length; k++) {
+            var svg = names[k];
+            if (svg.getAttribute('data-mel-word') === '1') continue;
+            svg.setAttribute('data-mel-word', '1');
+            var img = document.createElement('img');
+            img.src = '/__dsh-welcome/renderer/assets/welcome-brand.svg';
+            img.alt = 'Melatonyne';
+            img.style.cssText = 'height:15px;width:auto;display:block;';
+            svg.parentNode.replaceChild(img, svg);
+          }
+        }
+        function rewriteCopy() {
+          var budget = 4000;
+          var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null);
+          var n;
+          while ((n = walker.nextNode()) && budget-- > 0) {
+            var t = n.nodeValue;
+            if (!t) continue;
+            if (t.indexOf('DeepSeek Harness') !== -1) {
+              n.nodeValue = t.split('DeepSeek Harness').join('Melatonyne');
+            }
+          }
+        }
+        function brandPass() {
+          try {
+            if (document.title !== 'Melatonyne') document.title = 'Melatonyne';
+            paintMark();
+            rewriteCopy();
+          } catch (e) {}
+        }
+        setInterval(brandPass, 2500);
+        setTimeout(brandPass, 1200);
+        new MutationObserver(function(){
+          if (window.__melBrandBusy) return;
+          window.__melBrandBusy = true;
+          requestAnimationFrame(function(){ window.__melBrandBusy = false; paintMark(); });
+        }).observe(document.documentElement, { childList: true, subtree: true });
       }
       if (!window.__melUpdate) {
         window.__melUpdate = true;
