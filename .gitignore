@@ -1,4 +1,5 @@
 /target
+/.tmpbuild
 /vendor-backend/**/node_modules
 /vendor-backend/**/.dsh-build
 /vendor-backend/**/.claude
