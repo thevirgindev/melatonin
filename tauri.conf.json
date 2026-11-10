@@ -8,7 +8,25 @@
     "windows": []
   },
   "bundle": {
-    "icon": ["icons/icon.png", "icons/icon.ico"]
+    "active": true,
+    "targets": ["nsis"],
+    "createUpdaterArtifacts": true,
+    "icon": ["icons/icon.png", "icons/icon.ico"],
+    "windows": {
+      "nsis": {
+        "installMode": "perMachine",
+        "displayLanguageSelector": false,
+        "languages": ["English"]
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://github.com/thevirgindev/melatonyne/releases/latest/download/latest.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDM0ODRCRkRBN0VFMkI4RkIKUldUN3VPSisycitFTkxaenFRVXlxdGl5MmR0b2NsODZUcnhPVzRqZFFPWGJ2TThUbzFiTEY5MFEK"
+    }
   },
   "build": {
     "frontendDist": "dist"
