@@ -118,7 +118,8 @@
       };
     </script>
     <script src="../lib/welcome/welcome.js" defer></script>
-  </head>
+  <style>img.brand{width:auto !important;height:40px !important;max-width:100%;object-fit:contain;}</style>
+</head>
   <body>
     <script src="shell-theme.js"></script>
     <div id="root"></div>
@@ -136,7 +137,7 @@
             '.deepr-split-left { flex:0 0 125px !important; background:#f9fafb !important; color:#0f1115 !important; font-weight:600 !important; font-size:14px !important; clip-path:polygon(0 0, 100% 0, calc(100% - 20px) 100%, 0 100%) !important; }' +
             '.deepr-split-left:hover { flex:0 0 260px !important; background:#ffffff !important; clip-path:polygon(0 0, 100% 0, calc(100% - 20px) 100%, 0 100%) !important; }' +
             '.deepr-split-left:hover ~ .deepr-split-right { flex:0 0 0px !important; opacity:0 !important; padding:0 !important; }' +
-            '.deepr-split-right { flex:0 0 135px !important; margin-left:-20px !important; background:#000000 !important; color:#f9fafb !important; font-weight:500 !important; font-size:13px !important; clip-path:polygon(20px 0, 100% 0, 100% 100%, 0 100%) !important; }' +
+            '.deepr-split-right { flex:0 0 135px !important; margin-left:-20px !important; background:#000000 !important; color:#f9fafb !important; font-weight:500 !important; font-size:13px !important; padding-right:14px !important; clip-path:polygon(20px 0, 100% 0, 100% 100%, 0 100%) !important; }' +
             '.deepr-split-right:hover { flex:0 0 260px !important; margin-left:-20px !important; background:#1c1d22 !important; clip-path:polygon(20px 0, 100% 0, 100% 100%, 0 100%) !important; }' +
             '.deepr-split-container:has(.deepr-split-right:hover) .deepr-split-left { flex:0 0 0px !important; opacity:0 !important; padding:0 !important; }';
           document.head.appendChild(nk);

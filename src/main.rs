@@ -284,7 +284,7 @@ const SHELL_JS: &str = r#"
             if (svg.getAttribute('data-mel-word') === '1') continue;
             svg.setAttribute('data-mel-word', '1');
             var img = document.createElement('img');
-            img.src = '/__dsh-welcome/renderer/assets/welcome-brand.svg';
+            img.src = '/__dsh-welcome/renderer/assets/wordmark.svg';
             img.alt = 'Melatonyne';
             img.style.cssText = 'height:15px;width:auto;display:block;';
             svg.parentNode.replaceChild(img, svg);
