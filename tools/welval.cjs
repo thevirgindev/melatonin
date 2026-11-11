@@ -1,0 +1,18 @@
+const http = require('http')
+const expr = process.argv[2] || 'document.body.innerText'
+http.get({ host: '127.0.0.1', port: 9223, path: '/json' }, r => {
+  let d = ''
+  r.on('data', c => d += c)
+  r.on('end', () => {
+    const t = JSON.parse(d).find(x => x.url.includes(process.argv[3] || 'tauri.localhost'))
+    if (!t) { console.log('no target'); return }
+    const ws = new WebSocket(t.webSocketDebuggerUrl)
+    ws.onopen = () => ws.send(JSON.stringify({ id: 1, method: 'Runtime.evaluate', params: { expression: expr, returnByValue: true } }))
+    ws.onmessage = m => {
+      const j = JSON.parse(m.data)
+      const v = j.result && j.result.result ? j.result.result.value : j
+      console.log(typeof v === 'object' ? JSON.stringify(v) : v)
+      ws.close()
+    }
+  })
+})

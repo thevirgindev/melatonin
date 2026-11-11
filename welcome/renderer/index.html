@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title></title>
+    <link rel="stylesheet" href="../lib/welcome/brand-font.css">
+    <link rel="stylesheet" href="../lib/welcome/welcome.css">
+    <link rel="stylesheet" href="welcome.css">
+    <script>
+      const T = () => (window.__TAURI__ && window.__TAURI__.core) ? window.__TAURI__.core.invoke : null;
+      async function B(op, args) { const inv = T(); if (!inv) throw new Error('no tauri'); return inv('bridge_call', { op, args: args || {} }); }
+      const PROVIDERS = [
+        ['amazon-bedrock','AWS_ACCESS_KEY_ID'],['ant-ling','ANT_LING_API_KEY'],['anthropic','ANTHROPIC_API_KEY'],
+        ['azure','AZURE_OPENAI_API_KEY'],['baseten','BASETEN_API_KEY'],['cerebras','CEREBRAS_API_KEY'],
+        ['cloudflare-ai-gateway','CLOUDFLARE_API_KEY'],['cloudflare-workers-ai','CLOUDFLARE_API_KEY'],
+        ['deepseek','DEEPSEEK_API_KEY'],['fireworks','FIREWORKS_API_KEY'],['github-copilot','COPILOT_GITHUB_TOKEN'],
+        ['google','GEMINI_API_KEY'],['google-vertex','GOOGLE_CLOUD_API_KEY'],['groq','GROQ_API_KEY'],
+        ['huggingface','HF_TOKEN'],['kimi-coding','KIMI_API_KEY'],['meta','META_API_KEY'],
+        ['minimax','MINIMAX_API_KEY'],['minimax-cn','MINIMAX_CN_API_KEY'],['mistral','MISTRAL_API_KEY'],
+        ['moonshotai','MOONSHOT_API_KEY'],['moonshotai-cn','MOONSHOT_API_KEY'],['nvidia','NVIDIA_API_KEY'],
+        ['openai','OPENAI_API_KEY'],['openai-codex','OPENAI_API_KEY'],['opencode','OPENCODE_API_KEY'],
+        ['opencode-go','OPENCODE_API_KEY'],['openrouter','OPENROUTER_API_KEY'],['qwen-token-plan','DASHSCOPE_API_KEY'],
+        ['radius','RADIUS_API_KEY'],['together','TOGETHER_API_KEY'],['typesafe','TYPESAFE_API_KEY'],
+        ['vercel-ai-gateway','VERCEL_API_KEY'],['xai','XAI_API_KEY'],['xiaomi','XIAOMI_API_KEY'],
+        ['zai','ZAI_API_KEY'],['zai-coding-cn','ZAI_API_KEY'],
+      ];
+      window.dshWelcome = {
+        id: 'en',
+        messages: {
+        welcomeTitle: 'Melatonin',
+        welcomeBrand: 'Melatonin',
+        welcomeTaglineBefore: 'Welcome to ',
+        welcomeTaglineBrand: 'Melatonin',
+        welcomeTaglineAfter: '',
+        welcomeDescription: 'Build potential. Explore intelligence.',
+        welcomeAuthStarting: 'Opening sign in\u2026',
+        welcomeAuthWaiting: 'Browser didn\u2019t open automatically?',
+        welcomeAuthWaitingDescription: 'Copy the sign-in link and open it in your browser to sign in.',
+        welcomeAuthExchanging: 'Completing sign in\u2026',
+        welcomeAuthExpired: 'Sign in timed out',
+        welcomeAuthExpiredDescription: 'Sign in again to continue',
+        welcomeAuthFailed: 'Could not complete sign in. Please try again.',
+        welcomeAuthCopyLink: 'Copy sign-in link',
+        welcomeAuthCopied: 'Copied',
+        welcomeAuthCopyFailed: 'Could not copy. Try again.',
+        welcomeAuthCancel: 'Cancel',
+        welcomeAuthRetry: 'Sign in again',
+        welcomeSignIn: 'Sign In',
+        welcomeApiKey: 'Custom Key',
+        welcomeKeyTitle: 'Connect your API key',
+        welcomeKeyDescription: 'Connect Melatonin to your provider to get started',
+        welcomeKeyPlaceholder: 'Enter API key',
+        welcomeKeySave: 'Save and continue',
+        welcomeKeyLater: 'Set up later',
+        welcomeKeyBack: 'Back to sign in',
+        welcomeSessionExpired: 'You have signed out of your account, please log in again.',
+        welcomeKeyBlank: 'Enter an API key.',
+        welcomeKeyInvalid: 'Enter the API key itself, without quotes, spaces, or an environment-variable assignment.',
+        welcomeKeyFailed: 'Could not save the API key. Please try again.',
+        welcomeContinueFailed: 'Could not open the workspace. Please try again.',
+        },
+        analyticsEnabled: async () => false,
+        analytics: async () => undefined,
+        takeNotice: async () => undefined,
+        startSignIn: async () => {
+          window.__deeprSignInCanceled = false;
+          const state = await B('start', {});
+          if (window.__deeprSignInCanceled) return state;
+          const url = state && state.attempt && state.attempt.authorizeUrl;
+          if (url && !window.__deeprSignInCanceled) {
+            try { window.__TAURI__.event.emit('deepr-open-url', url); } catch (e) { window.open(url, '_blank'); }
+          }
+          return state;
+        },
+        cancelSignIn: async (id) => {
+          window.__deeprSignInCanceled = true;
+          return B('cancel', { attemptId: id });
+        },
+        copySignInLink: async (id) => {
+          const url = await B('copyLink', { attemptId: id });
+          if (url) {
+            try { await navigator.clipboard.writeText(url); } catch (e) {
+              const t = document.createElement('textarea'); t.value = url; document.body.appendChild(t); t.select();
+              document.execCommand('copy'); t.remove();
+            }
+          }
+        },
+        onAccountState: (listener) => {
+          let alive = true;
+          let emitted = false;
+          const poll = async () => {
+            if (!alive) return;
+            try {
+              const s = await B('state', {});
+              listener(s);
+              if (!emitted && s && s.status === 'credential-stored') {
+                emitted = true;
+                try { window.__TAURI__.event.emit('deepr-continue', 'signed-in'); } catch (e) {}
+              }
+            } catch (e) {}
+            if (alive) setTimeout(poll, 1200);
+          };
+          poll();
+          window.__dshAccountListener = listener;
+          window.dispatchEvent(new Event('dsh-welcome-ready'));
+          return () => { alive = false; window.__dshAccountListener = undefined; };
+        },
+        saveApiKey: async (value) => {
+          const v = String(value == null ? '' : value).trim();
+          if (v === '') throw new Error('welcomeKeyBlank');
+          await B('saveKey', { ref: 'DEEPSEEK_API_KEY', value: v });
+          const L = window.__dshAccountListener || (function(){});
+          setTimeout(function(){ L({ status:'credential-stored', links:{usageUrl:'about:blank',topUpUrl:'about:blank'}, attempt:{id:'mock',phase:'succeeded'} }); try { window.__TAURI__.event.emit('deepr-continue','api-key'); } catch(e){} }, 200);
+          return { ok: true };
+        },
+        skip: async () => undefined,
+      };
+    </script>
+    <script src="../lib/welcome/welcome.js" defer></script>
+  <style>img.brand{width:auto !important;height:40px !important;max-width:100%;object-fit:contain;}</style>
+</head>
+  <body>
+    <script src="shell-theme.js"></script>
+    <div id="root"></div>
+    <script>
+      // "Use other provider" trigger and merged pill layout
+      (function(){
+        var current = 'amazon-bedrock';
+        if (!document.getElementById('deepr-nk')) {
+          var nk = document.createElement('style');
+          nk.id = 'deepr-nk';
+          nk.textContent = 
+            '#deepr-provider ::-webkit-scrollbar{width:8px}#deepr-provider ::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.16);border-radius:4px}#deepr-provider ::-webkit-scrollbar-track{background:transparent}' +
+            '.deepr-split-container { display:flex !important; flex-direction:row !important; width:240px !important; height:44px !important; border-radius:10px !important; overflow:hidden !important; border:0 !important; background:#000000 !important; padding:0 !important; box-sizing:border-box !important; }' +
+            '.deepr-split-container button { height:100% !important; border:0 !important; border-radius:0 !important; font-family:inherit !important; cursor:pointer !important; transition:flex 0.3s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s ease, opacity 0.2s ease !important; display:flex !important; align-items:center !important; justify-content:center !important; margin:0 !important; box-sizing:border-box !important; white-space:nowrap !important; overflow:hidden !important; min-width:0 !important; }' +
+            '.deepr-split-left { flex:0 0 125px !important; background:#f9fafb !important; color:#0f1115 !important; font-weight:600 !important; font-size:14px !important; clip-path:polygon(0 0, 100% 0, calc(100% - 20px) 100%, 0 100%) !important; }' +
+            '.deepr-split-left:hover { flex:0 0 260px !important; background:#ffffff !important; clip-path:polygon(0 0, 100% 0, calc(100% - 20px) 100%, 0 100%) !important; }' +
+            '.deepr-split-left:hover ~ .deepr-split-right { flex:0 0 0px !important; opacity:0 !important; padding:0 !important; }' +
+            '.deepr-split-right { flex:0 0 135px !important; margin-left:-20px !important; background:#000000 !important; color:#f9fafb !important; font-weight:500 !important; font-size:13px !important; padding-right:14px !important; clip-path:polygon(20px 0, 100% 0, 100% 100%, 0 100%) !important; }' +
+            '.deepr-split-right:hover { flex:0 0 260px !important; margin-left:-20px !important; background:#1c1d22 !important; clip-path:polygon(20px 0, 100% 0, 100% 100%, 0 100%) !important; }' +
+            '.deepr-split-container:has(.deepr-split-right:hover) .deepr-split-left { flex:0 0 0px !important; opacity:0 !important; padding:0 !important; }';
+          document.head.appendChild(nk);
+        }
+        function mountTrigger(){
+          if (document.getElementById('deepr-provider-trigger')) return;
+          var trig = document.createElement('button');
+          trig.id = 'deepr-provider-trigger';
+          trig.textContent = 'Connect Custom Provider';
+          trig.style.cssText = 'position:fixed;z-index:2147483646;display:none;width:240px;height:44px;border-radius:10px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.08);color:#f9fafb;cursor:pointer;font:inherit;font-size:14px;font-weight:500;padding:8px 16px;box-sizing:border-box;letter-spacing:0;text-align:center;align-items:center;justify-content:center;white-space:nowrap;transition:background-color 0.2s ease, border-color 0.2s ease;';
+          trig.onmouseenter = function(){ 
+            trig.style.background = 'rgba(255,255,255,0.12)'; 
+            trig.style.borderColor = 'rgba(255,255,255,0.2)'; 
+          };
+          trig.onmouseleave = function(){ 
+            trig.style.background = 'rgba(255,255,255,0.08)'; 
+            trig.style.borderColor = 'rgba(255,255,255,0.12)'; 
+          };
+          trig.onclick = function(ev){ ev.stopPropagation(); openModal(); };
+          document.body.appendChild(trig);
+        }
+        function mountModal(){
+          if (document.getElementById('deepr-provider')) return;
+          var backdrop = document.createElement('div');
+          backdrop.id = 'deepr-provider';
+          backdrop.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:none;background:#0f1115;font-family:var(--dsw-font-family-brand, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);box-sizing:border-box;';
+
+          // Native grid matching the real welcome screen layout
+          var grid = document.createElement('div');
+          grid.style.cssText = 'width:100%;height:100%;display:grid;grid-template-rows:40px minmax(0, 1fr) 104px;justify-items:center;align-items:center;padding:24px 48px 76px;box-sizing:border-box;';
+          grid.onclick = function(ev){ ev.stopPropagation(); };
+
+          // Row 1: Logo
+          var brand = document.createElement('img');
+          brand.className = 'brand';
+          brand.src = 'assets/welcome-brand.svg';
+          brand.alt = 'Melatonin';
+          brand.style.cssText = 'grid-row:1;grid-column:1;display:block;width:100%;height:40px;user-select:none;-webkit-user-drag:none;';
+
+          // Row 2: Form (exact .key-form styles: 440px width, 40px gap)
+          var form = document.createElement('div');
+          form.style.cssText = 'grid-row:2;grid-column:1;display:flex;flex-direction:column;align-items:center;gap:40px;width:440px;';
+
+          var heading = document.createElement('header');
+          heading.className = 'key-heading';
+          heading.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;';
+
+          var h = document.createElement('h1');
+          h.textContent = 'Use another provider';
+          h.style.cssText = 'margin:0;font-size:20px;font-weight:400;line-height:32px;letter-spacing:0.01em;color:var(--dsw-alias-label-primary, #f9fafb);';
+
+          var d = document.createElement('p');
+          d.textContent = 'Pick a provider and paste its API key';
+          d.style.cssText = 'margin:0;font-size:16px;font-weight:300;line-height:22px;letter-spacing:0.02em;color:var(--dsw-alias-label-secondary, #adb2b8);';
+
+          heading.appendChild(h);
+          heading.appendChild(d);
+
+          var fields = document.createElement('div');
+          fields.style.cssText = 'width:100%;display:flex;flex-direction:column;gap:12px;';
+
+          // Provider selector dropdown
+          var selectWrapper = document.createElement('div');
+          selectWrapper.style.cssText = 'position:relative;width:100%;';
+
+          var selectBtn = document.createElement('button');
+          selectBtn.type = 'button';
+          selectBtn.style.cssText = 'width:100%;height:48px;padding:7px 14px;border:1px solid var(--dsw-alias-border-l4, rgba(255,255,255,0.2));border-radius:12px;background:transparent;color:var(--dsw-alias-label-primary, #f9fafb);font-family:inherit;font-size:14px;font-weight:300;display:flex;align-items:center;justify-content:space-between;cursor:pointer;outline:none;box-sizing:border-box;';
+
+          var selectLabel = document.createElement('span');
+          function updateSelectLabel() {
+            var found = PROVIDERS.find(function(p){ return p[0] === current; });
+            selectLabel.textContent = found ? found[0] : current;
+          }
+          updateSelectLabel();
+
+          var arrow = document.createElement('span');
+          arrow.innerHTML = '<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+          arrow.style.cssText = 'display:flex;align-items:center;color:var(--dsw-alias-label-secondary, #adb2b8);pointer-events:none;';
+
+          selectBtn.appendChild(selectLabel);
+          selectBtn.appendChild(arrow);
+
+          var menu = document.createElement('div');
+          menu.style.cssText = 'display:none;position:absolute;top:calc(100% + 6px);left:0;right:0;max-height:190px;overflow-y:auto;background:#18191c;border:1px solid rgba(255,255,255,0.2);border-radius:12px;padding:6px;z-index:100;box-shadow:0 8px 24px rgba(0,0,0,0.6);scrollbar-width:thin;scrollbar-color:rgba(255,255,255,0.2) transparent;';
+
+          function populateMenu() {
+            menu.innerHTML = '';
+            PROVIDERS.forEach(function(p){
+              var item = document.createElement('div');
+              var isSel = p[0] === current;
+              item.textContent = p[0];
+              item.style.cssText = 'padding:8px 12px;font-size:13px;line-height:20px;border-radius:8px;cursor:pointer;font-family:inherit;color:' + (isSel ? '#fff' : 'var(--dsw-alias-label-secondary, #cfd3d6)') + ';background:' + (isSel ? 'rgba(255,255,255,0.1)' : 'transparent') + ';';
+              item.onmouseenter = function(){ if (p[0] !== current) item.style.background = 'rgba(255,255,255,0.06)'; };
+              item.onmouseleave = function(){ if (p[0] !== current) item.style.background = 'transparent'; };
+              item.onclick = function(e){
+                e.stopPropagation();
+                current = p[0];
+                updateSelectLabel();
+                menu.style.display = 'none';
+                populateMenu();
+              };
+              menu.appendChild(item);
+            });
+          }
+          populateMenu();
+
+          selectBtn.onclick = function(e){
+            e.stopPropagation();
+            menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+            if (menu.style.display === 'block') {
+              var idx = PROVIDERS.findIndex(function(p){ return p[0] === current; });
+              if (idx >= 0 && menu.children[idx]) menu.children[idx].scrollIntoView({ block: 'nearest' });
+            }
+          };
+
+          selectWrapper.appendChild(selectBtn);
+          selectWrapper.appendChild(menu);
+
+          var key = document.createElement('input');
+          key.type = 'password';
+          key.placeholder = 'Enter API key';
+          key.style.cssText = 'display:block;width:100%;height:48px;padding:7px 14px;border:1px solid var(--dsw-alias-border-l4, rgba(255,255,255,0.2));border-radius:12px;outline:none;background:transparent;color:var(--dsw-alias-label-primary, #f9fafb);font-family:inherit;font-weight:inherit;font-size:14px;line-height:24px;box-sizing:border-box;user-select:text;';
+          key.onfocus = function(){ key.style.borderColor = 'var(--dsw-alias-brand-primary, #f9fafb)'; };
+          key.onblur = function(){ key.style.borderColor = 'var(--dsw-alias-border-l4, rgba(255,255,255,0.2))'; };
+
+          function checkSaveState() {
+            var hasVal = key.value.trim().length > 0;
+            save.disabled = !hasVal;
+            if (hasVal) {
+              save.style.background = '#f9fafb';
+              save.style.color = '#353638';
+              save.style.opacity = '1';
+              save.style.cursor = 'pointer';
+            } else {
+              save.style.background = '#43454a';
+              save.style.color = '#71757c';
+              save.style.opacity = '0.7';
+              save.style.cursor = 'not-allowed';
+            }
+          }
+          key.addEventListener('input', checkSaveState);
+
+          fields.appendChild(selectWrapper);
+          fields.appendChild(key);
+
+          form.appendChild(heading);
+          form.appendChild(fields);
+
+          // Row 3: Actions (exact .actions styles: 240px width, 16px gap, absolute .back below)
+          var actions = document.createElement('div');
+          actions.className = 'actions';
+          actions.style.cssText = 'position:relative;grid-row:3;grid-column:1;align-self:stretch;display:flex;flex:none;flex-direction:column;gap:16px;width:240px;';
+
+          var save = document.createElement('button');
+          save.textContent = 'Save and continue';
+          save.style.cssText = 'display:flex;align-items:center;justify-content:center;height:44px;padding:8px 16px;border:1px solid transparent;border-radius:10px;font-family:var(--dsw-font-family);font-size:14px;font-weight:500;line-height:22px;';
+          checkSaveState();
+
+          save.onclick = async function(){
+            var found = PROVIDERS.find(function(p){ return p[0] === current; });
+            var ref = found ? found[1] : null;
+            var v = key.value.trim();
+            if (!v || !ref) return;
+            try { await B('saveKey', { ref: ref, value: v }); } catch(e){ return; }
+            try { window.__TAURI__.event.emit('deepr-continue', 'api-key'); } catch(e){}
+          };
+
+          var back = document.createElement('button');
+          back.textContent = 'Back to sign in';
+          back.style.cssText = 'position:absolute;top:calc(100% + 16px);left:50%;transform:translateX(-50%);white-space:nowrap;min-width:58px;height:28px;padding:4px 10px;border:0;border-radius:24px;background:transparent;color:var(--dsw-alias-label-secondary, #adb2b8);font-family:var(--dsw-font-family-brand);font-weight:300;font-size:14px;line-height:20px;cursor:pointer;';
+          back.onmouseenter = function(){ back.style.color = '#f9fafb'; };
+          back.onmouseleave = function(){ back.style.color = 'var(--dsw-alias-label-secondary, #adb2b8)'; };
+          back.onclick = function(){ closeModal(); };
+
+          actions.appendChild(save);
+          actions.appendChild(back);
+
+          grid.appendChild(brand);
+          grid.appendChild(form);
+          grid.appendChild(actions);
+
+          backdrop.appendChild(grid);
+          backdrop.onclick = function(){ menu.style.display = 'none'; };
+          document.body.appendChild(backdrop);
+        }
+        function openModal(){
+          mountModal();
+          var b = document.getElementById('deepr-provider');
+          b.style.display = 'block';
+        }
+        function modalize(){
+          // No dynamic overrides needed - cleanly themed with app vars
+        }
+        function closeModal(){
+          var b = document.getElementById('deepr-provider');
+          if (b) b.style.display = 'none';
+        }
+        // One beat: sync the trigger with the app's real buttons, dock it
+        // under the entry column, and re-sync the modal if it is open.
+        function beat(){
+          mountTrigger();
+          var trig = document.getElementById('deepr-provider-trigger'); if (!trig) return;
+          var si = document.getElementById('sign-in');
+          var ak = document.getElementById('api-key');
+          var keyForm = document.querySelector('.key-form');
+          var authPage = document.getElementById('auth-page');
+
+          var onInitialEntry = si && ak && si.offsetParent !== null &&
+            (!keyForm || keyForm.hidden || keyForm.offsetParent === null) &&
+            (!authPage || authPage.hidden || authPage.offsetParent === null);
+
+          if (onInitialEntry) {
+            // Group into split pill if not already wrapped
+            var parent = si.parentElement;
+            if (parent && !parent.classList.contains('deepr-split-container')) {
+              var wrap = document.createElement('div');
+              wrap.className = 'deepr-split-container';
+              parent.insertBefore(wrap, si);
+              wrap.appendChild(si);
+              wrap.appendChild(ak);
+              si.className = 'deepr-split-left';
+              ak.className = 'deepr-split-right';
+
+              // Hide trigger instantly the exact moment either button is clicked
+              si.addEventListener('click', function(){ trig.style.display = 'none'; }, true);
+              ak.addEventListener('click', function(){ trig.style.display = 'none'; }, true);
+            }
+            var wrapBox = si.parentElement.getBoundingClientRect();
+            if (wrapBox.width > 0 && wrapBox.bottom > 0) {
+              trig.style.left = wrapBox.left + 'px';
+              trig.style.top = (wrapBox.bottom + 14) + 'px';
+              trig.style.width = Math.round(wrapBox.width) + 'px';
+              trig.style.display = 'flex';
+            }
+          } else {
+            trig.style.display = 'none';
+          }
+        }
+        function hideSkip() {
+          document.querySelectorAll('button').forEach(function(b){
+            const t=(b.textContent||'').trim().toLowerCase();
+            if (/set up later|skip|later/.test(t)) { b.style.display='none'; return; }
+            if (/sign in again/.test(t) && !b.dataset.deeprTheme) {
+              b.dataset.deeprTheme='1';
+              b.style.cssText = 'padding:10px 22px;border-radius:10px;border:0;background:#4c7fff;color:#fff;cursor:pointer;font-size:14px;font-family:inherit;';
+            }
+          });
+          beat();
+        }
+        if (document.body) hideSkip(); else document.addEventListener('DOMContentLoaded', hideSkip);
+        setInterval(hideSkip, 800);
+        window.addEventListener('resize', beat);
+        document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeModal(); });
+        new MutationObserver(hideSkip).observe(document.documentElement||document.body, {childList:true,subtree:true});
+      })();
+    </script>
+  </body>
+</html>

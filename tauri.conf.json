@@ -1,0 +1,44 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Melatonin",
+  "version": "1.0.0",
+  "identifier": "com.melatonin.app",
+  "app": {
+    "withGlobalTauri": true,
+    "windows": []
+  },
+  "bundle": {
+    "active": true,
+    "targets": [
+      "nsis"
+    ],
+    "createUpdaterArtifacts": true,
+    "icon": [
+      "icons/icon.png",
+      "icons/icon.ico"
+    ],
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "displayLanguageSelector": false,
+        "languages": [
+          "English"
+        ]
+      }
+    },
+    "resources": {
+      "../melatonin-backend/": "backend/dsh/"
+    }
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://github.com/thevirgindev/melatonin/releases/latest/download/latest.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDM0ODRCRkRBN0VFMkI4RkIKUldUN3VPSisycitFTkxaenFRVXlxdGl5MmR0b2NsODZUcnhPVzRqZFFPWGJ2TThUbzFiTEY5MFEK"
+    }
+  },
+  "build": {
+    "frontendDist": "dist"
+  }
+}
